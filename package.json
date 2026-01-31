@@ -1,0 +1,19 @@
+{
+  "name": "honey-comb-scam-detection",
+  "version": "1.0.0",
+  "description": "2) Agentic Honey-Pot for Scam Detection & Intelligence Extraction",
+  "license": "ISC",
+  "author": "Puneet Saxena",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^17.2.3",
+    "ejs": "^4.0.1",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.11"
+  }
+}

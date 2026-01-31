@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Honeypot AI Defense System</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --chat-user: #3b82f6;
+            --chat-bot: #334155;
+        }
+
+        body {
+            font-family: 'Courier New', monospace; /* Hacker font */
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* LEFT PANEL: CHAT */
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #334155;
+            max-width: 50%;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid #334155;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 8px;
+            line-height: 1.4;
+            font-family: sans-serif;
+        }
+
+        .message.scammer {
+            align-self: flex-start;
+            background-color: var(--chat-user);
+            color: white;
+            border-bottom-left-radius: 0;
+        }
+
+        .message.ai {
+            align-self: flex-end;
+            background-color: var(--chat-bot);
+            color: #e2e8f0;
+            border-bottom-right-radius: 0;
+            border: 1px solid #475569;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: var(--panel-bg);
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: var(--bg-color);
+            color: white;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--accent-green);
+            color: black;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover { opacity: 0.9; }
+
+        /* RIGHT PANEL: INTELLIGENCE */
+        .intel-panel {
+            flex: 1;
+            padding: 20px;
+            background-color: #0b1120;
+            overflow-y: auto;
+        }
+
+        .intel-box {
+            background: var(--panel-bg);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        h3 { margin-top: 0; color: var(--accent-green); border-bottom: 1px solid #334155; padding-bottom: 10px;}
+
+        .log-entry {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            color: #94a3b8;
+        }
+        
+        .highlight { color: var(--accent-green); font-weight: bold; }
+        .alert { color: var(--accent-red); font-weight: bold; }
+        
+        pre {
+            background: black;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            color: #10b981;
+            font-size: 0.8em;
+        }
+
+        .mission-complete {
+            border: 2px solid var(--accent-red);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-panel">
+        <div class="chat-header">
+            <div class="status-dot"></div>
+            <span>LIVE INTERCEPT: +91 98XXX XXXXX</span>
+        </div>
+        <div class="messages" id="messages">
+            <div class="message ai">System online. Waiting for incoming scam...</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Simulate incoming scam message..." onkeypress="handleEnter(event)">
+            <button onclick="sendMessage()">SEND</button>
+        </div>
+    </div>
+
+    <div class="intel-panel" id="intelPanel">
+        <div class="intel-box">
+            <h3>🛡️ THREAT ANALYSIS</h3>
+            <div id="statusBox">Waiting for input...</div>
+        </div>
+
+        <div class="intel-box">
+            <h3>📂 EXTRACTED INTELLIGENCE</h3>
+            <div id="extractionBox">No entities found yet.</div>
+        </div>
+
+        <div class="intel-box">
+            <h3>💾 SYSTEM LOGS</h3>
+            <div id="logBox"></div>
+        </div>
+    </div>
+
+    <script>
+        const senderId = "demo_user_" + Math.floor(Math.random() * 1000);
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // 1. Add User Message to Chat
+            addMessage(text, 'scammer');
+            input.value = '';
+            log(`📨 Incoming message: "${text}"`);
+
+            // 2. Call API
+            try {
+                const response = await fetch('/api/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sender_id: senderId, message: text })
+                });
+                const data = await response.json();
+
+                // 3. Update UI based on Response
+                if (data.reply) {
+                    addMessage(data.reply, 'ai');
+                }
+
+                updateDashboard(data);
+
+            } catch (err) {
+                console.error(err);
+                addMessage("❌ Connection Error: Ensure Server is Running", 'ai');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerText = text;
+            const container = document.getElementById('messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function log(msg) {
+            const logBox = document.getElementById('logBox');
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logBox.prepend(div);
+        }
+
+        function updateDashboard(data) {
+            const statusBox = document.getElementById('statusBox');
+            const extractionBox = document.getElementById('extractionBox');
+            const intelPanel = document.getElementById('intelPanel');
+
+            // Update Status
+            if (data.status === "mission_complete") {
+                statusBox.innerHTML = `<span class="alert">🚨 MISSION COMPLETE 🚨</span><br>Target Neutralized.`;
+                intelPanel.classList.add('mission-complete');
+                log("✅ TARGET LOCKED. Conversation Terminated.");
+                
+                // Show final report
+                const pre = document.createElement('pre');
+                pre.innerText = JSON.stringify(data.report.scam_intelligence, null, 2);
+                extractionBox.innerHTML = "";
+                extractionBox.appendChild(pre);
+                return;
+            }
+
+            if (data.is_scam) {
+                statusBox.innerHTML = `<span class="alert">⚠️ SCAM DETECTED</span>`;
+            } else {
+                statusBox.innerHTML = `<span class="highlight">🟢 SAFE</span>`;
+            }
+
+            // Update Extracted Data
+            if (data.extracted_now || data.total_extracted) {
+                const entities = data.total_extracted || data.extracted_now;
+                let html = "";
+                if (entities.upi.length) html += `<div>💳 UPI: <span class="highlight">${entities.upi.join(', ')}</span></div>`;
+                if (entities.bank_account.length) html += `<div>🏦 Bank: <span class="highlight">${entities.bank_account.join(', ')}</span></div>`;
+                if (entities.links.length) html += `<div>🔗 Links: <span class="alert">${entities.links.join(', ')}</span></div>`;
+                
+                if (html) extractionBox.innerHTML = html;
+            }
+        }
+    </script>
+</body>
+</html>
