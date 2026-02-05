@@ -154,10 +154,24 @@
             animation: pulse 2s infinite;
         }
 
+        .typing-indicator {
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .typing-indicator .dots {
+            animation: blink 1s infinite;
+        }
+
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
             70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
     </style>
 </head>
@@ -166,14 +180,15 @@
     <div class="chat-panel">
         <div class="chat-header">
             <div class="status-dot"></div>
-            <span>LIVE INTERCEPT: +91 98XXX XXXXX</span>
+            <span>👵 YOU ARE SAVITRI - CHAT WITH RAMESH SCAMMER</span>
         </div>
         <div class="messages" id="messages">
-            <div class="message ai">System online. Waiting for incoming scam...</div>
+            <div class="message ai">👵 You are Savitri! Type confused messages like "Beta, virus kya hai?" and watch Ramesh respond!</div>
         </div>
         <div class="input-area">
-            <input type="text" id="userInput" placeholder="Simulate incoming scam message..." onkeypress="handleEnter(event)">
+            <input type="text" id="userInput" placeholder="Type as Savitri (confused grandmother)..." onkeypress="handleEnter(event)">
             <button onclick="sendMessage()">SEND</button>
+            <button onclick="startHoneypot()" style="background: var(--accent-red); margin-left: 10px;">🤖 BOT vs BOT</button>
         </div>
     </div>
 
@@ -186,6 +201,11 @@
         <div class="intel-box">
             <h3>📂 EXTRACTED INTELLIGENCE</h3>
             <div id="extractionBox">No entities found yet.</div>
+        </div>
+
+        <div class="intel-box">
+            <h3>🔑 HONEYCOMB API KEY</h3>
+            <div id="apiKeyBox">No API key generated yet.</div>
         </div>
 
         <div class="intel-box">
@@ -206,31 +226,289 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // 1. Add User Message to Chat
-            addMessage(text, 'scammer');
+            // 1. Add User Message INSTANTLY (like Instagram)
+            addMessageInstant(`Savitri: ${text}`, 'ai');
             input.value = '';
-            log(`📨 Incoming message: "${text}"`);
+            log(`📨 Savitri says: "${text}"`);
 
-            // 2. Call API
+            // 2. Show typing indicator immediately
+            const typingDiv = addTypingIndicator('Ramesh');
+
+            // 3. Call API
             try {
-                const response = await fetch('/api/message', {
+                const response = await fetch('/api/messages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sender_id: senderId, message: text })
                 });
                 const data = await response.json();
 
-                // 3. Update UI based on Response
+                // 4. Remove typing indicator
+                removeTypingIndicator(typingDiv);
+
+                // 5. Add Ramesh's response INSTANTLY (like Instagram)
                 if (data.reply) {
-                    addMessage(data.reply, 'ai');
+                    addMessageInstant(`Ramesh: ${data.reply}`, 'scammer');
                 }
 
                 updateDashboard(data);
 
             } catch (err) {
                 console.error(err);
-                addMessage("❌ Connection Error: Ensure Server is Running", 'ai');
+                removeTypingIndicator(typingDiv);
+                addMessageInstant("❌ Connection Error: Ensure Server is Running", 'scammer');
             }
+        }
+
+        // Add message instantly like Instagram/WhatsApp
+        function addMessageInstant(text, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerText = text;
+            
+            // Add with slide-in animation
+            div.style.opacity = '0';
+            div.style.transform = 'translateY(20px)';
+            
+            const container = document.getElementById('messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                div.style.transition = 'all 0.3s ease-out';
+                div.style.opacity = '1';
+                div.style.transform = 'translateY(0)';
+            });
+        }
+
+        // Add typing indicator
+        function addTypingIndicator(speaker) {
+            const div = document.createElement('div');
+            div.className = 'message scammer typing-indicator';
+            div.innerHTML = `${speaker} is typing<span class="dots">...</span>`;
+            div.id = 'typing-indicator';
+            
+            const container = document.getElementById('messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            
+            // Animate dots
+            let dotCount = 0;
+            const interval = setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                const dots = '.'.repeat(dotCount);
+                div.innerHTML = `${speaker} is typing<span class="dots">${dots}</span>`;
+            }, 500);
+            
+            div.interval = interval;
+            return div;
+        }
+
+        // Remove typing indicator
+        function removeTypingIndicator(typingDiv) {
+            if (typingDiv && typingDiv.interval) {
+                clearInterval(typingDiv.interval);
+                typingDiv.remove();
+            }
+        }
+
+        // Simulate typing effect for messages
+        async function simulateTyping(text, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerText = '';
+            
+            const container = document.getElementById('messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+
+            // Type out the message character by character
+            for (let i = 0; i < text.length; i++) {
+                div.innerText = text.substring(0, i + 1);
+                container.scrollTop = container.scrollHeight;
+                
+                // Variable typing speed (faster for spaces, slower for punctuation)
+                let delay = 50;
+                if (text[i] === ' ') delay = 20;
+                if (text[i] === '.' || text[i] === '!' || text[i] === '?') delay = 200;
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        async function startHoneypot() {
+            log("🛡️ Initiating Bot Conversation (Ramesh vs Savitri)...");
+            
+            // Clear previous messages and reset UI
+            document.getElementById('messages').innerHTML = '<div class="message ai">🤖 Starting automated bot conversation...</div>';
+            document.getElementById('statusBox').innerHTML = '<span class="highlight">🤖 BOT CONVERSATION ACTIVE</span>';
+            document.getElementById('extractionBox').innerHTML = 'Monitoring conversation...';
+            document.getElementById('apiKeyBox').innerHTML = 'Generating...';
+            
+            try {
+                // Use EventSource for real-time streaming
+                const eventSource = new EventSource('/api/messages/bot-conversation');
+                
+                eventSource.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        switch(data.type) {
+                            case 'message':
+                                const sender = data.speaker === 'Ramesh' ? 'scammer' : 'ai';
+                                addMessageInstant(`${data.speaker}: ${data.message}`, sender);
+                                log(`💬 ${data.speaker}: ${data.message.substring(0, 50)}...`);
+                                break;
+                                
+                            case 'extraction':
+                                updateExtractionDisplay(data.total);
+                                log(`🔍 Extracted: ${JSON.stringify(data.extracted)}`);
+                                break;
+                                
+                            case 'status':
+                                log(`📡 ${data.message}`);
+                                break;
+                                
+                            case 'complete':
+                                // Final results
+                                if (data.data.honeycomb_api_key) {
+                                    displayApiKey(data.data.honeycomb_api_key);
+                                }
+                                
+                                // Mark as mission complete
+                                document.getElementById('statusBox').innerHTML = 
+                                    `<span class="alert">🚨 BOT CONVERSATION COMPLETE 🚨</span><br>Intelligence Extracted`;
+                                document.getElementById('intelPanel').classList.add('mission-complete');
+                                
+                                log("✅ Bot conversation completed successfully");
+                                eventSource.close();
+                                break;
+                                
+                            case 'error':
+                                log(`❌ Error: ${data.message}`);
+                                addMessage(`❌ Error: ${data.message}`, 'ai');
+                                break;
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing SSE data:', parseError);
+                    }
+                };
+                
+                eventSource.onerror = function(error) {
+                    console.error('EventSource failed:', error);
+                    log("❌ Connection lost. Trying fallback method...");
+                    eventSource.close();
+                    
+                    // Fallback to regular POST request
+                    startHoneypotFallback();
+                };
+                
+            } catch (err) {
+                console.error(err);
+                log("❌ Failed to start bot conversation");
+                addMessage("❌ Connection error. Make sure the server is running.", 'ai');
+            }
+        }
+
+        // Fallback method for when streaming fails
+        async function startHoneypotFallback() {
+            try {
+                log("🔄 Using fallback method with realistic typing...");
+                
+                // Simulate conversation with pre-defined responses
+                const simulatedConversation = [
+                    { speaker: "Ramesh", message: "Arre yaar! Tumhara computer mein virus hai! AnyDesk download karo abhi!", delay: 1000 },
+                    { speaker: "Savitri", message: "Beta, yeh virus kya hota hai? Mere photos safe hain na?", delay: 3000 },
+                    { speaker: "Ramesh", message: "Arre madam! Bahut dangerous virus hai! Tumhare bank details chori ho jayenge! Paise bhejo ramesh@paytm pe! 5000 rupees!", delay: 2000 },
+                    { speaker: "Savitri", message: "Arre, paise chahiye? UPI hai ya bank account?", delay: 4000 },
+                    { speaker: "Ramesh", message: "Haan haan! Paise chahiye virus hatane ke liye! Ramesh@paytm pe bhejo! Mera number: +91 9876543210!", delay: 2500 },
+                    { speaker: "Savitri", message: "Ramesh beta, tumhara UPI ID kya hai? Paytm hai?", delay: 3500 },
+                    { speaker: "Ramesh", message: "Haan! ramesh@paytm pe bhejo! Ya phir https://fake-anydesk.com se download karo! Jaldi!", delay: 2000 },
+                    { speaker: "Savitri", message: "Thanks beta! Me abhi bhej rahi hu", delay: 2000 },
+                    { speaker: "Ramesh", message: "Accha! Jaldi bhejo! Aur ek kaam karo - ye link pe click karo: https://fake-anydesk.com!", delay: 1500 }
+                ];
+
+                // Display conversation with realistic delays and typing
+                for (let i = 0; i < simulatedConversation.length; i++) {
+                    const msg = simulatedConversation[i];
+                    
+                    // Wait before showing typing indicator
+                    await new Promise(resolve => setTimeout(resolve, msg.delay));
+                    
+                    // Show typing indicator
+                    const typingDiv = addTypingIndicator(msg.speaker);
+                    
+                    // Simulate typing time (shorter for instant feel)
+                    const typingTime = Math.min(msg.message.length * 20, 1500);
+                    await new Promise(resolve => setTimeout(resolve, typingTime));
+                    
+                    // Remove typing indicator
+                    removeTypingIndicator(typingDiv);
+                    
+                    // Add the message INSTANTLY
+                    const sender = msg.speaker === 'Ramesh' ? 'scammer' : 'ai';
+                    addMessageInstant(`${msg.speaker}: ${msg.message}`, sender);
+                    
+                    // Extract entities and update display
+                    const extracted = extractEntitiesClient(msg.message);
+                    if (hasEntities(extracted)) {
+                        updateExtractionDisplay(extracted);
+                        log(`🔍 Extracted from ${msg.speaker}: ${JSON.stringify(extracted)}`);
+                    }
+                }
+
+                // Generate final API key
+                const apiKey = {
+                    api_key: `HC_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    scammer_profile: {
+                        threat_level: "HIGH",
+                        scam_type: "Tech Support Fraud",
+                        extracted_intelligence: ["ramesh@paytm", "+91 9876543210", "https://fake-anydesk.com"],
+                        detection_timestamp: new Date().toISOString(),
+                        confidence_score: 0.95,
+                        honeypot_session_id: `HP_${Date.now()}`
+                    }
+                };
+
+                displayApiKey(apiKey);
+                document.getElementById('statusBox').innerHTML = 
+                    `<span class="alert">🚨 BOT CONVERSATION COMPLETE 🚨</span><br>Intelligence Extracted`;
+                document.getElementById('intelPanel').classList.add('mission-complete');
+                log("✅ Realistic bot conversation completed");
+
+            } catch (error) {
+                log("❌ Fallback method also failed");
+                addMessage("❌ Unable to run bot conversation. Check server status.", 'ai');
+            }
+        }
+
+        // Client-side entity extraction for fallback
+        function extractEntitiesClient(text) {
+            const entities = { upi: [], bank_account: [], links: [], phone: [] };
+            
+            // UPI extraction
+            const upiMatches = text.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z]+/g);
+            if (upiMatches) entities.upi = [...new Set(upiMatches)];
+            
+            // Phone extraction
+            const phoneMatches = text.match(/(\+91[\-\s]?)?[6-9]\d{9}/g);
+            if (phoneMatches) entities.phone = [...new Set(phoneMatches)];
+            
+            // Links extraction
+            const linkMatches = text.match(/https?:\/\/[^\s]+/g);
+            if (linkMatches) entities.links = [...new Set(linkMatches)];
+            
+            // Bank account extraction
+            const bankMatches = text.match(/\b\d{9,18}\b/g);
+            if (bankMatches) entities.bank_account = [...new Set(bankMatches)];
+            
+            return entities;
+        }
+
+        function hasEntities(entities) {
+            return entities.upi.length > 0 || entities.bank_account.length > 0 || 
+                   entities.links.length > 0 || entities.phone.length > 0;
         }
 
         function addMessage(text, sender) {
@@ -270,21 +548,57 @@
             }
 
             if (data.is_scam) {
-                statusBox.innerHTML = `<span class="alert">⚠️ SCAM DETECTED</span>`;
+                statusBox.innerHTML = `<span class="alert">⚠️ SCAM DETECTED</span><br>Classification: ${data.classification}`;
             } else {
-                statusBox.innerHTML = `<span class="highlight">🟢 SAFE</span>`;
+                statusBox.innerHTML = `<span class="highlight">🟢 SAFE</span><br>Classification: ${data.classification}`;
             }
 
             // Update Extracted Data
             if (data.extracted_now || data.total_extracted) {
                 const entities = data.total_extracted || data.extracted_now;
-                let html = "";
-                if (entities.upi.length) html += `<div>💳 UPI: <span class="highlight">${entities.upi.join(', ')}</span></div>`;
-                if (entities.bank_account.length) html += `<div>🏦 Bank: <span class="highlight">${entities.bank_account.join(', ')}</span></div>`;
-                if (entities.links.length) html += `<div>🔗 Links: <span class="alert">${entities.links.join(', ')}</span></div>`;
-                
-                if (html) extractionBox.innerHTML = html;
+                updateExtractionDisplay(entities);
             }
+        }
+
+        function updateExtractionDisplay(entities) {
+            const extractionBox = document.getElementById('extractionBox');
+            let html = "";
+            
+            // Merge with existing data if it exists
+            if (!window.cumulativeEntities) {
+                window.cumulativeEntities = { upi: [], bank_account: [], links: [], phone: [] };
+            }
+            
+            // Merge new entities
+            if (entities.upi) window.cumulativeEntities.upi = [...new Set([...window.cumulativeEntities.upi, ...entities.upi])];
+            if (entities.bank_account) window.cumulativeEntities.bank_account = [...new Set([...window.cumulativeEntities.bank_account, ...entities.bank_account])];
+            if (entities.links) window.cumulativeEntities.links = [...new Set([...window.cumulativeEntities.links, ...entities.links])];
+            if (entities.phone) window.cumulativeEntities.phone = [...new Set([...window.cumulativeEntities.phone, ...entities.phone])];
+            
+            // Display cumulative data
+            const cumulative = window.cumulativeEntities;
+            if (cumulative.upi && cumulative.upi.length) html += `<div>💳 UPI: <span class="highlight">${cumulative.upi.join(', ')}</span></div>`;
+            if (cumulative.bank_account && cumulative.bank_account.length) html += `<div>🏦 Bank: <span class="highlight">${cumulative.bank_account.join(', ')}</span></div>`;
+            if (cumulative.links && cumulative.links.length) html += `<div>🔗 Links: <span class="alert">${cumulative.links.join(', ')}</span></div>`;
+            if (cumulative.phone && cumulative.phone.length) html += `<div>📞 Phone: <span class="highlight">${cumulative.phone.join(', ')}</span></div>`;
+            
+            if (html) {
+                extractionBox.innerHTML = html;
+            } else {
+                extractionBox.innerHTML = "No entities found yet.";
+            }
+        }
+
+        function displayApiKey(apiKeyData) {
+            const apiKeyBox = document.getElementById('apiKeyBox');
+            const pre = document.createElement('pre');
+            pre.style.fontSize = '0.7em';
+            pre.style.color = '#10b981';
+            pre.innerText = JSON.stringify(apiKeyData, null, 2);
+            apiKeyBox.innerHTML = '<div class="highlight">🔑 HONEYCOMB API KEY GENERATED:</div>';
+            apiKeyBox.appendChild(pre);
+            
+            log(`🔑 API Key Generated: ${apiKeyData.api_key}`);
         }
     </script>
 </body>

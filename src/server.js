@@ -1,27 +1,27 @@
-import express from "express";
-import dotenv from "dotenv";
-import messageRoutes from "./routes/message.routes.js";
-import path from "path";
-import { fileURLToPath } from "url";
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+import messageRoutes from './routes/message.routes.js'; // Note the .js extension!
 
-// --- FIX STARTS HERE ---
+// Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Force dotenv to look in the parent directory (ROOT folder)
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
-// --- FIX ENDS HERE ---
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Debug line to confirm it works now
-console.log("DEBUG: API Key Status:", process.env.GEMINI_API_KEY ? "Loaded ✅" : "Still Missing ❌");
-
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public")));
-app.use("/api", messageRoutes);
+app.use(express.static(path.join(__dirname, '../public')));
+
+app.use('/api/messages', messageRoutes);
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📂 Project Root: ${path.join(__dirname, '../')}`);
 });
