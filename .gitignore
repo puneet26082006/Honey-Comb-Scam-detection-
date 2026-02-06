@@ -9,6 +9,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env
 
 # Logs
 logs
@@ -20,29 +21,20 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage directory
 coverage/
-
-# nyc test coverage
 .nyc_output
 
 # Dependency directories
 jspm_packages/
-
-# Optional npm cache directory
 .npm
+.yarn-integrity
 
 # Optional REPL history
 .node_repl_history
 
-# Output of 'npm pack'
+# Build outputs
 *.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
 
 # IDE files
 .vscode/
@@ -63,7 +55,7 @@ Thumbs.db
 test-*.js
 test-*.html
 
-# Development files
+# Development / Documentation files
 SYSTEM_*.md
 FIXES_*.md
 OLLAMA_*.md
@@ -71,18 +63,38 @@ ENHANCED_*.md
 setup-*.bat
 rebuild-*.bat
 
-# Ollama models (too large for git/vercel)
+# --- AI / ML MODEL FILES (LARGE FILES) ---
+# Universal exclusions for large model weights
 *.gguf
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.onnx
+*.h5
+*.ckpt
+
+# Specific Model Directories
 models/
+ramesh_bot/models/
 ramesh_bot/*.gguf
 
-# Large model files
+# Large specific files (Redundant but safe)
 ramesh_bot/llama-3-8b.Q4_K_M.gguf
+
+# --- ARCHIVES & DATABASES ---
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+*.db
+*.sqlite
+*.sqlite3
 
 # Temporary files
 *.tmp
 *.temp
 
 # Vercel
-.vercel
 .vercel
