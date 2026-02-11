@@ -98,3 +98,4 @@ ramesh_bot/llama-3-8b.Q4_K_M.gguf
 
 # Vercel
 .vercel
+.env*.local

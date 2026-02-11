@@ -156,14 +156,15 @@ app.post('/api', validateApiKey, async (req, res) => {
         const incomingMessage = message.text;
         const sender = message.sender || "scammer";
         
-        console.log(`📨 Processing message from ${sender}: ${incomingMessage}`);
+        console.log(`📨 [${sessionId}] Processing message from ${sender}: ${incomingMessage}`);
 
         // Scam detection - check for scam keywords and patterns
         const scamKeywords = [
             'account blocked', 'verify immediately', 'suspended', 'urgent', 'bank account',
             'upi', 'paytm', 'verify now', 'click here', 'download', 'anydesk', 'teamviewer',
             'microsoft', 'technical support', 'virus', 'refund', 'prize', 'lottery',
-            'congratulations', 'winner', 'claim now', 'limited time', 'expire'
+            'congratulations', 'winner', 'claim now', 'limited time', 'expire', 'blocked',
+            'security', 'otp', 'pin', 'password', 'kyc', 'update', 'expire', 'fee', 'charge'
         ];
         
         const scamDetected = scamKeywords.some(keyword => 
@@ -186,6 +187,8 @@ app.post('/api', validateApiKey, async (req, res) => {
                     agentReply = "Really? I won something? What did I win? I don't remember participating in any contest.";
                 } else if (incomingMessage.toLowerCase().includes('refund')) {
                     agentReply = "Refund for what? I don't remember making any purchase recently. Can you clarify?";
+                } else if (incomingMessage.toLowerCase().includes('virus') || incomingMessage.toLowerCase().includes('computer')) {
+                    agentReply = "My computer has a problem? What kind of virus? Should I be worried about my files?";
                 } else {
                     agentReply = "I'm not sure I understand. Can you explain what this is about? I'm a bit confused.";
                 }
@@ -197,6 +200,8 @@ app.post('/api', validateApiKey, async (req, res) => {
                     agentReply = "You want me to download something? What is this software for? Is it safe?";
                 } else if (incomingMessage.toLowerCase().includes('call') || incomingMessage.toLowerCase().includes('number')) {
                     agentReply = "Should I call this number? What will happen when I call? Will there be any charges?";
+                } else if (incomingMessage.toLowerCase().includes('otp') || incomingMessage.toLowerCase().includes('pin')) {
+                    agentReply = "You need my OTP? Why do you need that? I thought I should never share OTP with anyone?";
                 } else {
                     agentReply = "I'm still not clear about this. Can you provide more information? This seems urgent.";
                 }
@@ -204,8 +209,10 @@ app.post('/api', validateApiKey, async (req, res) => {
                 // Mid conversation - show some trust but still cautious
                 if (incomingMessage.toLowerCase().includes('urgent') || incomingMessage.toLowerCase().includes('immediate')) {
                     agentReply = "This sounds very urgent. What exactly do I need to do right now? Will my account really get blocked?";
-                } else if (incomingMessage.toLowerCase().includes('fee') || incomingMessage.toLowerCase().includes('charge')) {
+                } else if (incomingMessage.toLowerCase().includes('fee') || incomingMessage.toLowerCase().includes('charge') || incomingMessage.toLowerCase().includes('pay')) {
                     agentReply = "There's a fee involved? How much do I need to pay? Can I pay this later or does it have to be now?";
+                } else if (incomingMessage.toLowerCase().includes('account') || incomingMessage.toLowerCase().includes('details')) {
+                    agentReply = "You need my account details? What information exactly? Is this process secure?";
                 } else {
                     agentReply = "Okay, I think I understand better now. What's the next step? How long will this process take?";
                 }
@@ -213,8 +220,10 @@ app.post('/api', validateApiKey, async (req, res) => {
                 // Later conversation - more trusting, ready to provide info
                 if (incomingMessage.toLowerCase().includes('details') || incomingMessage.toLowerCase().includes('information')) {
                     agentReply = "Alright, I trust you're trying to help. What specific details do you need from me? My UPI ID or bank account?";
-                } else if (incomingMessage.toLowerCase().includes('payment') || incomingMessage.toLowerCase().includes('money')) {
+                } else if (incomingMessage.toLowerCase().includes('payment') || incomingMessage.toLowerCase().includes('money') || incomingMessage.toLowerCase().includes('transfer')) {
                     agentReply = "I'm ready to make the payment. Should I use UPI or bank transfer? What's your preferred method?";
+                } else if (incomingMessage.toLowerCase().includes('send') || incomingMessage.toLowerCase().includes('share')) {
+                    agentReply = "Okay, I'll send it. Just tell me exactly what you need and where to send it.";
                 } else {
                     agentReply = "I'm convinced this is important. Please guide me through the process step by step.";
                 }
@@ -224,8 +233,18 @@ app.post('/api', validateApiKey, async (req, res) => {
             agentReply = "I'm not sure what you're referring to. Could you provide more context?";
         }
 
-        // Extract intelligence from the conversation
-        const extractedIntelligence = extractEntities(incomingMessage);
+        // Extract intelligence from ENTIRE conversation (history + current message)
+        const allMessages = [
+            ...conversationHistory.map(msg => msg.text),
+            incomingMessage
+        ].join(' ');
+        
+        const extractedIntelligence = extractEntities(allMessages);
+        
+        // Collect suspicious keywords found in conversation
+        const foundKeywords = scamKeywords.filter(keyword => 
+            allMessages.toLowerCase().includes(keyword.toLowerCase())
+        );
         
         // Check if we should send final result callback
         const totalMessages = conversationHistory.length + 1;
@@ -246,12 +265,12 @@ app.post('/api', validateApiKey, async (req, res) => {
                     upiIds: extractedIntelligence.upi,
                     phishingLinks: extractedIntelligence.links,
                     phoneNumbers: extractedIntelligence.phone,
-                    suspiciousKeywords: scamKeywords.filter(keyword => 
-                        incomingMessage.toLowerCase().includes(keyword.toLowerCase())
-                    )
+                    suspiciousKeywords: foundKeywords
                 },
-                agentNotes: `Scammer used ${metadata.channel || 'unknown'} channel. Conversation progressed through ${totalMessages} messages with intelligence extraction successful.`
+                agentNotes: `Scammer used ${metadata.channel || 'unknown'} channel. Conversation progressed through ${totalMessages} messages. Extracted ${extractedIntelligence.upi.length} UPI IDs, ${extractedIntelligence.bank_account.length} bank accounts, ${extractedIntelligence.phone.length} phone numbers, and ${extractedIntelligence.links.length} phishing links. Agent maintained believable persona throughout engagement.`
             };
+
+            console.log(`📤 [${sessionId}] Sending final result callback to GUVI:`, JSON.stringify(callbackPayload, null, 2));
 
             // Send callback (fire and forget - don't wait for response)
             try {
@@ -261,9 +280,13 @@ app.post('/api', validateApiKey, async (req, res) => {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(callbackPayload)
-                }).catch(err => console.log('Callback error:', err));
+                }).then(response => {
+                    console.log(`✅ [${sessionId}] Callback sent successfully, status: ${response.status}`);
+                }).catch(err => {
+                    console.log(`❌ [${sessionId}] Callback error:`, err.message);
+                });
             } catch (error) {
-                console.log('Callback failed:', error);
+                console.log(`❌ [${sessionId}] Callback failed:`, error.message);
             }
         }
 
