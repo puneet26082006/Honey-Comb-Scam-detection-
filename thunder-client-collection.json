@@ -1,0 +1,150 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "Honeycomb Scam Detection - Complete Tests",
+  "collectionId": "honeycomb-tests",
+  "dateExported": "2026-02-05",
+  "version": "1.0",
+  "folders": [],
+  "requests": [
+    {
+      "name": "Test 1: Bank Blocking Scam",
+      "method": "POST",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"sessionId\": \"test-session-001\",\n  \"message\": {\n    \"sender\": \"scammer\",\n    \"text\": \"Your bank account will be blocked today. Verify immediately.\",\n    \"timestamp\": 1770005528731\n  },\n  \"conversationHistory\": [],\n  \"metadata\": {\n    \"channel\": \"SMS\",\n    \"language\": \"English\",\n    \"locale\": \"IN\"\n  }\n}"
+      }
+    },
+    {
+      "name": "Test 2: UPI Verification Scam",
+      "method": "POST",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"sessionId\": \"test-session-002\",\n  \"message\": {\n    \"sender\": \"scammer\",\n    \"text\": \"Share your UPI ID to avoid account suspension.\",\n    \"timestamp\": 1770005528731\n  },\n  \"conversationHistory\": [\n    {\n      \"sender\": \"scammer\",\n      \"text\": \"Your bank account will be blocked today. Verify immediately.\",\n      \"timestamp\": 1770005528731\n    },\n    {\n      \"sender\": \"user\",\n      \"text\": \"Why will my account be blocked?\",\n      \"timestamp\": 1770005528731\n    }\n  ],\n  \"metadata\": {\n    \"channel\": \"SMS\",\n    \"language\": \"English\",\n    \"locale\": \"IN\"\n  }\n}"
+      }
+    },
+    {
+      "name": "Test 3: Prize/Lottery Scam",
+      "method": "POST",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"sessionId\": \"test-session-003\",\n  \"message\": {\n    \"sender\": \"scammer\",\n    \"text\": \"Congratulations! You have won a lottery of Rs 10 lakhs. Claim now!\",\n    \"timestamp\": 1770005528731\n  },\n  \"conversationHistory\": [],\n  \"metadata\": {\n    \"channel\": \"WhatsApp\",\n    \"language\": \"English\",\n    \"locale\": \"IN\"\n  }\n}"
+      }
+    },
+    {
+      "name": "Test 4: Tech Support Scam",
+      "method": "POST",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"sessionId\": \"test-session-004\",\n  \"message\": {\n    \"sender\": \"scammer\",\n    \"text\": \"Your computer has a dangerous virus. Download AnyDesk immediately.\",\n    \"timestamp\": 1770005528731\n  },\n  \"conversationHistory\": [],\n  \"metadata\": {\n    \"channel\": \"Email\",\n    \"language\": \"English\",\n    \"locale\": \"IN\"\n  }\n}"
+      }
+    },
+    {
+      "name": "Test 5: Payment Request with Intelligence",
+      "method": "POST",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"sessionId\": \"test-session-005\",\n  \"message\": {\n    \"sender\": \"scammer\",\n    \"text\": \"Pay Rs 2999 to scammer@paytm or call +91 9876543210. Visit http://fake-site.com\",\n    \"timestamp\": 1770005528731\n  },\n  \"conversationHistory\": [\n    {\"sender\": \"scammer\", \"text\": \"Account blocked\", \"timestamp\": 1770005528731},\n    {\"sender\": \"user\", \"text\": \"Why?\", \"timestamp\": 1770005528731},\n    {\"sender\": \"scammer\", \"text\": \"Security issue\", \"timestamp\": 1770005528731},\n    {\"sender\": \"user\", \"text\": \"How to fix?\", \"timestamp\": 1770005528731},\n    {\"sender\": \"scammer\", \"text\": \"Pay fee\", \"timestamp\": 1770005528731},\n    {\"sender\": \"user\", \"text\": \"How much?\", \"timestamp\": 1770005528731}\n  ],\n  \"metadata\": {\n    \"channel\": \"SMS\",\n    \"language\": \"English\",\n    \"locale\": \"IN\"\n  }\n}"
+      }
+    },
+    {
+      "name": "Test 6: GET Health Check",
+      "method": "GET",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA"
+        }
+      ]
+    },
+    {
+      "name": "Test 7: Missing API Key (Error Test)",
+      "method": "POST",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"sessionId\": \"test-error-001\",\n  \"message\": {\n    \"sender\": \"scammer\",\n    \"text\": \"Test message\",\n    \"timestamp\": 1770005528731\n  },\n  \"conversationHistory\": [],\n  \"metadata\": {\n    \"channel\": \"SMS\",\n    \"language\": \"English\",\n    \"locale\": \"IN\"\n  }\n}"
+      }
+    },
+    {
+      "name": "Test 8: Invalid Request (Missing sessionId)",
+      "method": "POST",
+      "url": "https://honey-comb-scam-detection.vercel.app/api",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"message\": {\n    \"sender\": \"scammer\",\n    \"text\": \"Test message\",\n    \"timestamp\": 1770005528731\n  },\n  \"conversationHistory\": [],\n  \"metadata\": {\n    \"channel\": \"SMS\",\n    \"language\": \"English\",\n    \"locale\": \"IN\"\n  }\n}"
+      }
+    }
+  ]
+}
