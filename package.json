@@ -1,23 +1,19 @@
 {
   "name": "honey-comb-scam-detection",
-  "version": "1.0.0",
-  "description": "2) Agentic Honey-Pot for Scam Detection & Intelligence Extraction",
+  "version": "2.0.0",
+  "description": "Agentic Honey-Pot for Scam Detection with Ollama AI",
   "license": "ISC",
   "author": "Puneet Saxena",
   "type": "module",
-  "main": "index.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "build": "echo 'Build completed'",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node api/index.js",
+    "test": "node run-tests.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
-    "ejs": "^4.0.1",
-    "express": "^5.2.1",
-    "nodemon": "^3.1.11"
+    "express": "^5.2.1"
   }
 }
