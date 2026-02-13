@@ -144,11 +144,117 @@ export function generateSmartResponse(message, scamType, conversationLength, ses
     
     // INTELLIGENT RESPONSE GENERATION BASED ON CONTEXT
     
-    // Handle casual greetings and initial contact
+    // PRIORITY: Check for specific scam patterns FIRST before generic greetings
+    
+    // Electricity/Utility Bill Scams - HIGHEST PRIORITY
+    if (/electricity|power|disconnect|bill|utility/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'electricity-initial')) {
+            markTopicDiscussed(sessionId, 'electricity-initial');
+            return getUniqueResponse(sessionId, [
+                "Power will be cut tonight? But I paid last month's bill! Can you check again?",
+                "Disconnection? That's strange. I have auto-pay set up. What's the pending amount?",
+                "My electricity bill? I thought it was paid. How much do I owe?",
+                "Tonight at 9:30 PM? That's very soon! How can I pay immediately?"
+            ]);
+        }
+    }
+    
+    // KYC/Banking Scams - HIGH PRIORITY
+    if (/kyc|paytm|phonepe|gpay|wallet/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'kyc-initial')) {
+            markTopicDiscussed(sessionId, 'kyc-initial');
+            return getUniqueResponse(sessionId, [
+                "KYC suspended? But I just used my Paytm yesterday. What exactly is the problem?",
+                "My KYC expired? I don't remember getting any notification. How do I update it?",
+                "Wait, my wallet will be blocked? I have money in there! What should I do?",
+                "KYC issue? Can you tell me which documents I need to submit?"
+            ]);
+        }
+    }
+    
+    // Police/CBI/Digital Arrest - HIGH PRIORITY
+    if (/police|cbi|ncb|arrest|investigation|crime/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'police-initial')) {
+            markTopicDiscussed(sessionId, 'police-initial');
+            return getUniqueResponse(sessionId, [
+                "CBI? Digital arrest? I don't understand what that means. What did I do wrong?",
+                "Police investigation? I'm a law-abiding citizen! What is this about?",
+                "Arrest? I'm really scared now. Can you please explain what's happening?",
+                "Investigation against me? For what? I haven't done anything illegal!"
+            ]);
+        }
+    }
+    
+    // FedEx/Courier Scams - HIGH PRIORITY
+    if (/fedex|bluedart|dhl|courier|parcel/i.test(lower) && /drug|illegal|passport|custom/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'fedex-initial')) {
+            markTopicDiscussed(sessionId, 'fedex-initial');
+            return getUniqueResponse(sessionId, [
+                "Drugs in my parcel? That's impossible! I didn't order anything. Who sent this package?",
+                "Wait, what? I never ordered any parcel. Can you tell me the sender's name?",
+                "This must be a mistake. I don't even know anyone abroad. What's the tracking number?",
+                "Illegal items? I'm scared now. What should I do? Should I go to the police station?"
+            ]);
+        }
+    }
+    
+    // Job Offers - HIGH PRIORITY
+    if (/job|work.*home|earn|part.*time|amazon|google|flipkart/i.test(lower) && /daily|income|salary/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'job-initial')) {
+            markTopicDiscussed(sessionId, 'job-initial');
+            return getUniqueResponse(sessionId, [
+                "Rs 5000 daily? That sounds amazing! What kind of work is it? Is it legitimate?",
+                "Part-time job at Amazon? Really? What are the requirements? Do I need experience?",
+                "Work from home? I'm interested! How many hours per day? What's the process to join?",
+                "Earn money daily? That's great! But how do I know this is not a scam?"
+            ]);
+        }
+    }
+    
+    // Lottery/Prize Scams - HIGH PRIORITY
+    if (/won|lottery|prize|kbc|lakh|congratulation|winner/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'lottery-initial')) {
+            markTopicDiscussed(sessionId, 'lottery-initial');
+            return getUniqueResponse(sessionId, [
+                "I won 25 lakhs? Really? But I don't remember entering any lottery. How is this possible?",
+                "KBC lucky draw? I never participated in KBC. Are you sure you have the right person?",
+                "Won a prize? This is exciting! But how did you get my number? What do I need to do?",
+                "25 lakhs! That's a lot of money! Is this real? How do I claim it?"
+            ]);
+        }
+    }
+    
+    // Tax Refund - HIGH PRIORITY
+    if (/tax|refund|income tax|itr|return/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'tax-initial')) {
+            markTopicDiscussed(sessionId, 'tax-initial');
+            return getUniqueResponse(sessionId, [
+                "Tax refund? I did file my returns. How long does it take to get the money?",
+                "Income Tax refund? That's good news! Do I need to verify my bank account?",
+                "Refund pending? I wasn't expecting this. Is this from last year's ITR?",
+                "Tax refund? Great! What documents do I need to provide?"
+            ]);
+        }
+    }
+    
+    // Traffic Challan - HIGH PRIORITY
+    if (/challan|fine|traffic|violation|penalty/i.test(lower) && conversationLength < 2) {
+        if (!hasDiscussedTopic(sessionId, 'challan-initial')) {
+            markTopicDiscussed(sessionId, 'challan-initial');
+            return getUniqueResponse(sessionId, [
+                "Traffic challan? I don't remember any violation. What's this about?",
+                "Pending fine? Can you tell me when and where this happened?",
+                "Traffic penalty? I'm confused. What did I do wrong?",
+                "Challan? I always follow traffic rules. Are you sure this is for me?"
+            ]);
+        }
+    }
+    
+    // ONLY AFTER checking all scam patterns, handle casual greetings
     if (conversationLength === 0 || conversationLength === 1) {
         
-        // Casual greetings - respond naturally
-        if (/^(hello|hi|hey|good morning|good evening|good afternoon|greetings)/i.test(lower)) {
+        // Pure casual greetings with NO scam keywords
+        if (/^(hello|hi|hey|good morning|good evening|good afternoon|greetings)[\s\?\!]*$/i.test(lower.trim())) {
             return getUniqueResponse(sessionId, [
                 "Hello! I'm good, thank you. How can I help you?",
                 "Hi there! I'm doing well. What's this about?",
@@ -158,7 +264,7 @@ export function generateSmartResponse(message, scamType, conversationLength, ses
         }
         
         // "How are you" type messages
-        if (/how are you|how r u|how do you do/i.test(lower)) {
+        if (/^how are you|how r u|how do you do[\s\?\!]*$/i.test(lower.trim())) {
             return getUniqueResponse(sessionId, [
                 "I'm good, thank you! What's this regarding?",
                 "I'm fine, thanks for asking. How can I help you?",
@@ -166,115 +272,13 @@ export function generateSmartResponse(message, scamType, conversationLength, ses
                 "I'm okay. What did you want to talk about?"
             ]);
         }
-        
-        // Generic first contact
-        if (conversationLength === 0 && !hasDiscussedTopic(sessionId, 'initial-contact')) {
-            markTopicDiscussed(sessionId, 'initial-contact');
-            return getUniqueResponse(sessionId, [
-                "Hello! Yes, I'm here. What's this about?",
-                "Hi! How can I help you?",
-                "Yes? What did you need?",
-                "Hello! Is there something you wanted to discuss?"
-            ]);
-        }
     }
     
     // Phase 1: Initial Contact (0-2 messages) - Show confusion and concern
     if (conversationLength < 2) {
         
-        // KYC/Banking Scams
-        if (/kyc|paytm|phonepe|gpay|wallet/.test(lower)) {
-            if (!hasDiscussedTopic(sessionId, 'kyc-initial')) {
-                markTopicDiscussed(sessionId, 'kyc-initial');
-                return getUniqueResponse(sessionId, [
-                    "KYC suspended? But I just used my Paytm yesterday. What exactly is the problem?",
-                    "My KYC expired? I don't remember getting any notification. How do I update it?",
-                    "Wait, my wallet will be blocked? I have money in there! What should I do?",
-                    "KYC issue? Can you tell me which documents I need to submit?"
-                ]);
-            }
-        }
-        
-        // FedEx/Courier Scams
-        if (/fedex|bluedart|dhl|courier|parcel/.test(lower) && /drug|illegal|passport|custom/.test(lower)) {
-            if (!hasDiscussedTopic(sessionId, 'fedex-initial')) {
-                markTopicDiscussed(sessionId, 'fedex-initial');
-                return getUniqueResponse(sessionId, [
-                    "Drugs in my parcel? That's impossible! I didn't order anything. Who sent this package?",
-                    "Wait, what? I never ordered any parcel. Can you tell me the sender's name?",
-                    "This must be a mistake. I don't even know anyone abroad. What's the tracking number?",
-                    "Illegal items? I'm scared now. What should I do? Should I go to the police station?"
-                ]);
-            }
-        }
-        
-        // Police/CBI/Digital Arrest
-        if (/police|cbi|ncb|arrest|investigation|crime/.test(lower)) {
-            if (!hasDiscussedTopic(sessionId, 'police-initial')) {
-                markTopicDiscussed(sessionId, 'police-initial');
-                return getUniqueResponse(sessionId, [
-                    "CBI? Digital arrest? I don't understand what that means. What did I do wrong?",
-                    "Police investigation? I'm a law-abiding citizen! What is this about?",
-                    "Arrest? I'm really scared now. Can you please explain what's happening?",
-                    "Investigation against me? For what? I haven't done anything illegal!"
-                ]);
-            }
-        }
-        
-        // Electricity/Utility Bills
-        if (/electricity|power|disconnect|bill|utility/.test(lower)) {
-            if (!hasDiscussedTopic(sessionId, 'electricity-initial')) {
-                markTopicDiscussed(sessionId, 'electricity-initial');
-                return getUniqueResponse(sessionId, [
-                    "Power will be cut tonight? But I paid last month's bill! Can you check again?",
-                    "Disconnection? That's strange. I have auto-pay set up. What's the pending amount?",
-                    "My electricity bill? I thought it was paid. How much do I owe?",
-                    "Tonight? That's very soon! How can I pay immediately?"
-                ]);
-            }
-        }
-        
-        // Job Offers
-        if (/job|work.*home|earn|part.*time|amazon|google|flipkart/.test(lower) && /daily|income|salary/.test(lower)) {
-            if (!hasDiscussedTopic(sessionId, 'job-initial')) {
-                markTopicDiscussed(sessionId, 'job-initial');
-                return getUniqueResponse(sessionId, [
-                    "Rs 5000 daily? That sounds amazing! What kind of work is it? Is it legitimate?",
-                    "Part-time job at Amazon? Really? What are the requirements? Do I need experience?",
-                    "Work from home? I'm interested! How many hours per day? What's the process to join?",
-                    "Earn money daily? That's great! But how do I know this is not a scam?"
-                ]);
-            }
-        }
-        
-        // Lottery/Prize Scams
-        if (/won|lottery|prize|kbc|lakh|congratulation|winner/.test(lower)) {
-            if (!hasDiscussedTopic(sessionId, 'lottery-initial')) {
-                markTopicDiscussed(sessionId, 'lottery-initial');
-                return getUniqueResponse(sessionId, [
-                    "I won 25 lakhs? Really? But I don't remember entering any lottery. How is this possible?",
-                    "KBC lucky draw? I never participated in KBC. Are you sure you have the right person?",
-                    "Won a prize? This is exciting! But how did you get my number? What do I need to do?",
-                    "25 lakhs! That's a lot of money! Is this real? How do I claim it?"
-                ]);
-            }
-        }
-        
-        // Tax Refund
-        if (/tax|refund|income tax|itr|return/.test(lower)) {
-            if (!hasDiscussedTopic(sessionId, 'tax-initial')) {
-                markTopicDiscussed(sessionId, 'tax-initial');
-                return getUniqueResponse(sessionId, [
-                    "Tax refund? I did file my returns. How long does it take to get the money?",
-                    "Income Tax refund? That's good news! Do I need to verify my bank account?",
-                    "Refund pending? I wasn't expecting this. Is this from last year's ITR?",
-                    "Tax refund? Great! What documents do I need to provide?"
-                ]);
-            }
-        }
-        
-        // Generic urgent/block messages
-        if (/urgent|immediate|block|suspend|expire/.test(lower)) {
+        // Generic urgent/block messages (if not caught by specific patterns above)
+        if (/urgent|immediate|block|suspend|expire/i.test(lower)) {
             return getUniqueResponse(sessionId, [
                 "What? Why is this so urgent? Can you explain what's happening?",
                 "Blocked? I'm worried now. What exactly is the issue?",
