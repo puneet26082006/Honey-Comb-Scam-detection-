@@ -1,8 +1,12 @@
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import { extractEntities } from '../src/extractors/entity.extractor.js';
 import { generateIntelligentResponse, generateAgentNotes } from '../src/agents/intelligent.agent.js';
 import { generateOllamaResponse, checkOllamaAvailability } from '../src/agents/ollama.agent.js';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 
@@ -216,18 +220,18 @@ app.post('/api', validateApiKey, async (req, res) => {
         
         session.scamDetected = true; // Mark as scam conversation
         
-        // Always generate intelligent response
+        // Always generate intelligent response (with Grok fallback for unknown types)
         try {
             if (ollamaAvailable) {
                 console.log(`🤖 [${sessionId}] Using Ollama AI model`);
                 agentReply = await generateOllamaResponse(incomingMessage, effectiveHistory);
             } else {
-                console.log(`💡 [${sessionId}] Using smart pattern-based response`);
-                agentReply = generateIntelligentResponse(incomingMessage, effectiveHistory);
+                console.log(`💡 [${sessionId}] Using smart pattern-based response (with Grok fallback)`);
+                agentReply = await generateIntelligentResponse(incomingMessage, effectiveHistory);
             }
         } catch (ollamaError) {
             console.log(`⚠️ [${sessionId}] Ollama failed, using fallback`);
-            agentReply = generateIntelligentResponse(incomingMessage, effectiveHistory);
+            agentReply = await generateIntelligentResponse(incomingMessage, effectiveHistory);
         }
 
         // Extract intelligence
