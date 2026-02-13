@@ -1,93 +1,93 @@
 /**
  * Intelligent AI Agent for Honeypot Scam Detection
- * Generates dynamic, context-aware responses based on conversation analysis
+ * Primary: Groq AI with comprehensive scam training
+ * Fallback: Smart pattern-based responses
  */
 
 import { generateSmartResponse } from './smart.responses.js';
 import { generateGrokResponse, isGrokAvailable } from './grok.agent.js';
 
-// Generate dynamic response based on conversation phase
+/**
+ * Generate intelligent response - Groq AI first, pattern-based fallback
+ */
 export async function generateIntelligentResponse(message, conversationHistory = []) {
-    const lower = message.toLowerCase();
     const conversationLength = conversationHistory.length;
     
-    // Detect scam type
-    const scamType = detectScamType(lower);
+    // PRIORITY 1: Try Groq AI (our primary intelligence)
+    if (isGrokAvailable()) {
+        console.log(`🤖 Using Groq AI as primary intelligence`);
+        try {
+            const grokResponse = await generateGrokResponse(message, conversationHistory);
+            if (grokResponse && grokResponse.length > 10) {
+                return grokResponse;
+            }
+            console.log(`⚠️ Groq AI returned empty/short response, using fallback`);
+        } catch (error) {
+            console.log(`⚠️ Groq AI failed: ${error.message}, using fallback`);
+        }
+    } else {
+        console.log(`⚠️ Groq AI not available, using pattern-based fallback`);
+    }
     
-    // Generate unique session ID from conversation history
+    // FALLBACK: Pattern-based smart responses
+    const lower = message.toLowerCase();
+    const scamType = detectScamType(lower);
     const sessionId = conversationHistory.length > 0 
         ? JSON.stringify(conversationHistory.slice(0, 2)).substring(0, 20)
         : 'new-session';
     
-    // Try smart context-aware response first (our 300+ variations)
-    const smartResponse = generateSmartResponse(message, scamType, conversationLength, sessionId, conversationHistory);
-    
-    // If smart response is generic/fallback AND Grok is available, use Grok AI
-    const genericResponses = [
-        "I'm listening. What should I do?",
-        "Can you explain that again?",
-        "Okay, I'm ready. What's next?",
-        "Tell me what I need to do."
-    ];
-    
-    const isGenericResponse = genericResponses.some(generic => 
-        smartResponse.includes(generic.substring(0, 20))
-    );
-    
-    // Use Grok AI for truly random/unknown scam types
-    if (isGenericResponse && isGrokAvailable()) {
-        console.log(`🤖 Using Grok AI for unknown scam pattern`);
-        try {
-            const grokResponse = await generateGrokResponse(message, conversationHistory);
-            if (grokResponse) {
-                return grokResponse;
-            }
-        } catch (error) {
-            console.log(`⚠️ Grok AI failed, using smart response: ${error.message}`);
-        }
-    }
-    
-    return smartResponse;
+    return generateSmartResponse(message, scamType, conversationLength, sessionId, conversationHistory);
 }
 
-// Detect scam type
+/**
+ * Detect scam type for fallback system
+ */
 function detectScamType(message) {
-    if (/kyc|paytm|phonepe/.test(message)) return 'kyc_scam';
-    if (/fedex|courier|parcel/.test(message)) return 'fedex_scam';
-    if (/police|cbi|arrest/.test(message)) return 'digital_arrest';
-    if (/electricity|power/.test(message)) return 'electricity_scam';
-    if (/job|work.*home|earn/.test(message)) return 'job_scam';
-    if (/won|lottery|prize/.test(message)) return 'lottery_scam';
-    if (/tax|refund/.test(message)) return 'tax_refund';
+    if (/kyc|paytm|phonepe|wallet|gpay/.test(message)) return 'kyc_scam';
+    if (/fedex|courier|parcel|package|customs/.test(message)) return 'fedex_scam';
+    if (/police|cbi|arrest|legal|court|warrant/.test(message)) return 'digital_arrest';
+    if (/electricity|power|bill|disconnect/.test(message)) return 'electricity_scam';
+    if (/job|work.*home|earn|income|youtube|like|data entry/.test(message)) return 'job_scam';
+    if (/won|lottery|prize|congratulations|lucky draw|kbc/.test(message)) return 'lottery_scam';
+    if (/tax|refund|income tax|gst/.test(message)) return 'tax_refund';
+    if (/invest|trading|crypto|bitcoin|returns|profit/.test(message)) return 'investment_scam';
+    if (/bank|account|block|suspend|freeze/.test(message)) return 'bank_scam';
+    if (/challan|fine|traffic|violation/.test(message)) return 'traffic_scam';
     return 'generic_scam';
 }
 
-// Generate agent notes for callback
-export function generateAgentNotes(conversationHistory, intelligence, metadata) {
+/**
+ * Generate agent notes for callback
+ */
+export function generateAgentNotes(conversationHistory, intelligence) {
     const tactics = [];
     
-    // Analyze conversation for tactics
     const allText = conversationHistory.map(msg => msg.text).join(' ').toLowerCase();
     
-    if (/urgent|immediate|now/.test(allText)) tactics.push('urgency tactics');
-    if (/block|suspend|freeze/.test(allText)) tactics.push('account threats');
-    if (/upi|bank|payment/.test(allText)) tactics.push('payment redirection');
-    if (/otp|password|pin/.test(allText)) tactics.push('credential theft');
+    if (/urgent|immediate|now|quickly/.test(allText)) tactics.push('urgency tactics');
+    if (/block|suspend|freeze|locked/.test(allText)) tactics.push('account threats');
+    if (/upi|bank|payment|transfer/.test(allText)) tactics.push('payment redirection');
+    if (/otp|password|pin|cvv/.test(allText)) tactics.push('credential theft');
     if (/won|prize|lottery/.test(allText)) tactics.push('prize scam');
+    if (/job|earn|work/.test(allText)) tactics.push('job scam');
+    if (/police|arrest|legal/.test(allText)) tactics.push('authority impersonation');
     
     let notes = `Scammer used ${tactics.join(', ') || 'various tactics'}. `;
     
     if (intelligence.upiIds.length > 0) {
-        notes += `Attempted to extract UPI ID. `;
+        notes += `Extracted ${intelligence.upiIds.length} UPI ID(s). `;
     }
     if (intelligence.phoneNumbers.length > 0) {
-        notes += `Provided phone number for contact. `;
+        notes += `Captured ${intelligence.phoneNumbers.length} phone number(s). `;
+    }
+    if (intelligence.bankAccounts.length > 0) {
+        notes += `Obtained ${intelligence.bankAccounts.length} bank account(s). `;
     }
     if (intelligence.phishingLinks.length > 0) {
-        notes += `Shared suspicious links. `;
+        notes += `Identified ${intelligence.phishingLinks.length} suspicious link(s). `;
     }
     
-    notes += `Total ${conversationHistory.length} messages exchanged.`;
+    notes += `Total ${conversationHistory.length} messages exchanged. Honeypot successfully engaged scammer.`;
     
     return notes;
 }
