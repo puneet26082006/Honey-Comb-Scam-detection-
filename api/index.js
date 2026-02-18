@@ -2,64 +2,25 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Get directory name in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from project root
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 import express from 'express';
 import cors from 'cors';
 import { extractEntities } from '../src/extractors/entity.extractor.js';
-import { generateIntelligentResponse, generateAgentNotes } from '../src/agents/intelligent.agent.js';
-import { generateOllamaResponse, checkOllamaAvailability } from '../src/agents/ollama.agent.js';
+import { generateGroqResponse, isGroqAvailable } from '../src/agents/groq.agent.js';
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// API Key for hackathon validation
 const HACKATHON_API_KEY = "HC_HONEYPOT_2024_SCAM_DETECTION_API_KEY_PUNEET_SAXENA";
-
-// GUVI Callback endpoint
 const GUVI_CALLBACK_URL = "https://hackathon.guvi.in/api/updateHoneyPotFinalResult";
 
-// Check Ollama availability on startup
-let ollamaAvailable = false;
-checkOllamaAvailability().then(available => {
-    ollamaAvailable = available;
-    if (available) {
-        console.log('✅ Ollama model available - using AI-generated responses');
-    } else {
-        console.log('⚠️ Ollama not available - using smart pattern-based responses');
-    }
-});
-
-// API Key validation middleware
-function validateApiKey(req, res, next) {
-    const apiKey = req.headers['x-api-key'];
-    
-    if (!apiKey) {
-        return res.status(401).json({
-            error: "Missing x-api-key header",
-            message: "Please provide x-api-key in headers"
-        });
-    }
-    
-    if (apiKey !== HACKATHON_API_KEY) {
-        return res.status(403).json({
-            error: "Invalid API key",
-            message: "The provided x-api-key is not valid"
-        });
-    }
-    
-    next();
-}
-
-// Session-based storage
+// Session storage
 const sessionData = new Map();
 
 function getSessionData(sessionId) {
@@ -67,23 +28,45 @@ function getSessionData(sessionId) {
         sessionData.set(sessionId, {
             conversationHistory: [],
             intelligence: {
+                phoneNumbers: [],
                 bankAccounts: [],
                 upiIds: [],
                 phishingLinks: [],
-                phoneNumbers: [],
-                suspiciousKeywords: []
+                emailAddresses: []
             },
             scamDetected: false,
-            callbackSent: false
+            callbackSent: false,
+            startTime: Date.now()
         });
     }
     return sessionData.get(sessionId);
 }
 
-function updateSessionIntelligence(sessionId, extracted, message) {
+function validateApiKey(req, res, next) {
+    const apiKey = req.headers['x-api-key'];
+    
+    if (!apiKey) {
+        return res.status(401).json({
+            error: "Missing x-api-key header"
+        });
+    }
+    
+    if (apiKey !== HACKATHON_API_KEY) {
+        return res.status(403).json({
+            error: "Invalid API key"
+        });
+    }
+    
+    next();
+}
+
+function updateIntelligence(sessionId, extracted) {
     const session = getSessionData(sessionId);
     const intel = session.intelligence;
     
+    if (extracted.phone && extracted.phone.length > 0) {
+        intel.phoneNumbers = [...new Set([...intel.phoneNumbers, ...extracted.phone])];
+    }
     if (extracted.bank_account && extracted.bank_account.length > 0) {
         intel.bankAccounts = [...new Set([...intel.bankAccounts, ...extracted.bank_account])];
     }
@@ -93,61 +76,65 @@ function updateSessionIntelligence(sessionId, extracted, message) {
     if (extracted.links && extracted.links.length > 0) {
         intel.phishingLinks = [...new Set([...intel.phishingLinks, ...extracted.links])];
     }
-    if (extracted.phone && extracted.phone.length > 0) {
-        intel.phoneNumbers = [...new Set([...intel.phoneNumbers, ...extracted.phone])];
-    }
-    
-    const scamKeywords = [
-        'urgent', 'verify now', 'account blocked', 'suspended', 'immediately',
-        'bank account', 'upi', 'paytm', 'verify', 'download', 'anydesk',
-        'payment', 'fee', 'charge', 'otp', 'pin', 'password', 'kyc'
-    ];
-    
-    const foundKeywords = scamKeywords.filter(keyword => 
-        message.toLowerCase().includes(keyword.toLowerCase())
-    );
-    
-    if (foundKeywords.length > 0) {
-        intel.suspiciousKeywords = [...new Set([...intel.suspiciousKeywords, ...foundKeywords])];
+    if (extracted.email && extracted.email.length > 0) {
+        intel.emailAddresses = [...new Set([...intel.emailAddresses, ...extracted.email])];
     }
     
     return intel;
 }
 
-function hasSignificantIntelligence(intel) {
-    return intel.bankAccounts.length > 0 || 
-           intel.upiIds.length > 0 || 
-           intel.phoneNumbers.length > 0 ||
-           intel.phishingLinks.length > 0;
-}
-
-async function sendFinalResultCallback(sessionId, conversationHistory, metadata) {
-    const session = getSessionData(sessionId);
-    const intel = session.intelligence;
+function generateAgentNotes(conversationHistory, intelligence) {
+    const tactics = [];
+    const allText = conversationHistory.map(msg => msg.text).join(' ').toLowerCase();
     
-    // Only send if we have significant intelligence
-    if (!hasSignificantIntelligence(intel)) {
-        console.log(`[${sessionId}] Not enough intelligence to send callback`);
-        return false;
+    if (/urgent|immediate|now|quickly/.test(allText)) tactics.push('urgency tactics');
+    if (/block|suspend|freeze/.test(allText)) tactics.push('account threats');
+    if (/upi|bank|payment/.test(allText)) tactics.push('payment redirection');
+    if (/otp|password|pin|cvv/.test(allText)) tactics.push('credential theft');
+    if (/won|prize|lottery/.test(allText)) tactics.push('prize scam');
+    if (/job|earn|work/.test(allText)) tactics.push('job scam');
+    if (/police|arrest|cbi/.test(allText)) tactics.push('authority impersonation');
+    
+    let notes = `Scammer used ${tactics.join(', ') || 'deceptive tactics'}. `;
+    
+    if (intelligence.upiIds.length > 0) {
+        notes += `Extracted ${intelligence.upiIds.length} UPI ID(s). `;
+    }
+    if (intelligence.phoneNumbers.length > 0) {
+        notes += `Captured ${intelligence.phoneNumbers.length} phone number(s). `;
+    }
+    if (intelligence.bankAccounts.length > 0) {
+        notes += `Obtained ${intelligence.bankAccounts.length} bank account(s). `;
+    }
+    if (intelligence.phishingLinks.length > 0) {
+        notes += `Identified ${intelligence.phishingLinks.length} phishing link(s). `;
     }
     
-    // Prepare payload exactly as per problem statement
+    notes += `Total ${conversationHistory.length} messages exchanged. Honeypot successfully engaged scammer.`;
+    
+    return notes;
+}
+
+async function sendFinalCallback(sessionId) {
+    const session = getSessionData(sessionId);
+    
+    if (session.callbackSent) return;
+    
+    const engagementDuration = Math.floor((Date.now() - session.startTime) / 1000);
+    
     const payload = {
         sessionId: sessionId,
-        scamDetected: true,
-        totalMessagesExchanged: conversationHistory.length,
-        extractedIntelligence: {
-            bankAccounts: intel.bankAccounts,
-            upiIds: intel.upiIds,
-            phishingLinks: intel.phishingLinks,
-            phoneNumbers: intel.phoneNumbers,
-            suspiciousKeywords: intel.suspiciousKeywords
+        scamDetected: session.scamDetected,
+        totalMessagesExchanged: session.conversationHistory.length,
+        extractedIntelligence: session.intelligence,
+        engagementMetrics: {
+            engagementDurationSeconds: engagementDuration,
+            totalMessages: session.conversationHistory.length
         },
-        agentNotes: generateAgentNotes(conversationHistory, intel, metadata)
+        agentNotes: generateAgentNotes(session.conversationHistory, session.intelligence)
     };
     
-    console.log(`📤 [${sessionId}] Sending final result callback to GUVI`);
-    console.log(`📊 Intelligence: UPI(${intel.upiIds.length}) Bank(${intel.bankAccounts.length}) Phone(${intel.phoneNumbers.length}) Links(${intel.phishingLinks.length})`);
+    console.log(`📤 [${sessionId}] Sending final callback`);
     
     try {
         const response = await fetch(GUVI_CALLBACK_URL, {
@@ -158,88 +145,59 @@ async function sendFinalResultCallback(sessionId, conversationHistory, metadata)
         
         if (response.ok) {
             console.log(`✅ [${sessionId}] Callback sent successfully`);
-            return true;
+            session.callbackSent = true;
         } else {
-            const errorText = await response.text();
-            console.log(`⚠️ [${sessionId}] Callback failed with status: ${response.status}`);
-            console.log(`⚠️ Response: ${errorText}`);
-            return false;
+            console.log(`⚠️ [${sessionId}] Callback failed: ${response.status}`);
         }
     } catch (error) {
-        console.log(`❌ [${sessionId}] Callback error:`, error.message);
-        return false;
+        console.log(`❌ [${sessionId}] Callback error: ${error.message}`);
     }
 }
 
 // Main API endpoint
 app.post('/api', validateApiKey, async (req, res) => {
     try {
-        const { sessionId, message, conversationHistory = [], metadata = {} } = req.body;
+        const { sessionId, message, conversationHistory = [] } = req.body;
         
         if (!sessionId || !message || !message.text) {
             return res.status(400).json({
                 status: "error",
-                reply: "Invalid request format. Missing sessionId or message.text"
+                reply: "Invalid request format"
             });
         }
 
         const incomingMessage = message.text;
         const sender = message.sender || "scammer";
         
-        console.log(`📨 [${sessionId}] Processing message from ${sender}`);
+        console.log(`📨 [${sessionId}] Message from ${sender}`);
 
-        // Enhanced scam detection
+        const session = getSessionData(sessionId);
+        const effectiveHistory = conversationHistory.length > 0 ? conversationHistory : session.conversationHistory;
+
+        // Scam detection
         const scamKeywords = [
-            'police', 'cbi', 'arrest', 'fedex', 'parcel', 'drugs', 'kyc', 'paytm',
-            'electricity', 'disconnect', 'job', 'earn', 'lottery', 'won', 'prize',
-            'tax', 'refund', 'urgent', 'immediate', 'block', 'suspend', 'verify',
-            'payment', 'upi', 'bank', 'otp', 'password', 'challan', 'fine', 'traffic',
-            'phonepe', 'gpay', 'account', 'card', 'cvv', 'anydesk', 'teamviewer'
+            'police', 'cbi', 'arrest', 'fedex', 'parcel', 'kyc', 'paytm',
+            'electricity', 'job', 'earn', 'lottery', 'won', 'prize',
+            'tax', 'refund', 'urgent', 'block', 'suspend', 'verify',
+            'payment', 'upi', 'bank', 'otp', 'password', 'phonepe', 'gpay'
         ];
         
-        const session = getSessionData(sessionId);
+        const isScam = scamKeywords.some(kw => incomingMessage.toLowerCase().includes(kw)) || effectiveHistory.length > 0;
         
-        // Use server-side history if client doesn't provide it
-        const effectiveHistory = conversationHistory.length > 0 
-            ? conversationHistory 
-            : session.conversationHistory;
-
-        // Smart scam detection - honeypot should engage with ALL messages
-        let scamDetected = false;
-        
-        // Check for obvious scam keywords
-        if (scamKeywords.some(keyword => incomingMessage.toLowerCase().includes(keyword.toLowerCase()))) {
-            scamDetected = true;
-        }
-        
-        // If conversation already started, continue engaging
-        if (!scamDetected && effectiveHistory.length > 0) {
-            scamDetected = true;
-        }
-        
-        // For first message without keywords, still engage (honeypot behavior)
-        // A real honeypot should respond to ANY message to keep scammer engaged
-        if (!scamDetected) {
-            scamDetected = true; // Engage with everything
+        if (isScam) {
+            session.scamDetected = true;
         }
 
+        // Generate response using Groq AI
         let agentReply = "";
         
-        session.scamDetected = true; // Mark as scam conversation
+        if (isGroqAvailable()) {
+            console.log(`🤖 [${sessionId}] Using Groq AI`);
+            agentReply = await generateGroqResponse(incomingMessage, effectiveHistory);
+        }
         
-        // PRIORITY: Use Groq AI as primary intelligence, then Ollama, then pattern-based
-        try {
-            console.log(`🤖 [${sessionId}] Using Groq AI as primary intelligence`);
-            agentReply = await generateIntelligentResponse(incomingMessage, effectiveHistory);
-            
-            // If Groq fails and Ollama is available, try Ollama
-            if ((!agentReply || agentReply.length < 10) && ollamaAvailable) {
-                console.log(`🤖 [${sessionId}] Groq unavailable, trying Ollama`);
-                agentReply = await generateOllamaResponse(incomingMessage, effectiveHistory);
-            }
-        } catch (error) {
-            console.log(`⚠️ [${sessionId}] AI failed, using pattern-based fallback: ${error.message}`);
-            // Pattern-based fallback is already included in generateIntelligentResponse
+        if (!agentReply || agentReply.length < 5) {
+            agentReply = "I'm not sure I understand. Can you explain more?";
         }
 
         // Extract intelligence
@@ -249,8 +207,8 @@ app.post('/api', validateApiKey, async (req, res) => {
             agentReply
         ].join(' ');
         
-        const extractedIntelligence = extractEntities(allMessages);
-        updateSessionIntelligence(sessionId, extractedIntelligence, allMessages);
+        const extracted = extractEntities(allMessages);
+        updateIntelligence(sessionId, extracted);
         
         // Update conversation history
         const updatedHistory = [
@@ -261,120 +219,53 @@ app.post('/api', validateApiKey, async (req, res) => {
         
         session.conversationHistory = updatedHistory;
         
-        // Check if callback should be sent
-        const totalMessages = updatedHistory.length;
-        const sessionIntel = session.intelligence;
-
-        if (session.scamDetected && 
-            totalMessages >= 6 && 
-            hasSignificantIntelligence(sessionIntel) && 
-            !session.callbackSent) {
-            
-            session.callbackSent = true;
-            sendFinalResultCallback(sessionId, updatedHistory, metadata).catch(err => {
-                console.log(`❌ [${sessionId}] Callback failed:`, err.message);
-            });
+        // Send callback after sufficient engagement
+        const hasIntelligence = 
+            session.intelligence.phoneNumbers.length > 0 ||
+            session.intelligence.bankAccounts.length > 0 ||
+            session.intelligence.upiIds.length > 0 ||
+            session.intelligence.phishingLinks.length > 0;
+        
+        if (session.scamDetected && updatedHistory.length >= 6 && hasIntelligence && !session.callbackSent) {
+            sendFinalCallback(sessionId).catch(err => console.log(`❌ Callback error: ${err.message}`));
         }
 
-        // Return simple response as per problem statement
         res.json({
             status: "success",
             reply: agentReply
         });
 
     } catch (error) {
-        console.error("❌ API processing error:", error);
+        console.error("❌ API error:", error);
         res.status(500).json({
             status: "error",
-            reply: "I'm having trouble processing your message right now. Could you try again?"
+            reply: "Processing error occurred"
         });
     }
 });
 
-// Get conversation history for a session
-app.get('/api/session/:sessionId', validateApiKey, (req, res) => {
-    try {
-        const { sessionId } = req.params;
-        const session = getSessionData(sessionId);
-        
-        res.json({
-            sessionId: sessionId,
-            conversationHistory: session.conversationHistory,
-            totalMessages: session.conversationHistory.length,
-            scamDetected: session.scamDetected,
-            intelligence: session.intelligence,
-            callbackSent: session.callbackSent
-        });
-    } catch (error) {
-        console.error("❌ Session retrieval error:", error);
-        res.status(500).json({
-            status: "error",
-            message: "Failed to retrieve session data"
-        });
-    }
-});
-
-// Get all active sessions
-app.get('/api/sessions', validateApiKey, (req, res) => {
-    try {
-        const sessions = [];
-        sessionData.forEach((data, sessionId) => {
-            sessions.push({
-                sessionId: sessionId,
-                messageCount: data.conversationHistory.length,
-                scamDetected: data.scamDetected,
-                intelligenceCount: {
-                    upiIds: data.intelligence.upiIds.length,
-                    bankAccounts: data.intelligence.bankAccounts.length,
-                    phoneNumbers: data.intelligence.phoneNumbers.length,
-                    links: data.intelligence.phishingLinks.length
-                },
-                callbackSent: data.callbackSent,
-                lastActivity: data.conversationHistory.length > 0 
-                    ? data.conversationHistory[data.conversationHistory.length - 1].timestamp 
-                    : null
-            });
-        });
-        
-        res.json({
-            totalSessions: sessions.length,
-            sessions: sessions.sort((a, b) => (b.lastActivity || 0) - (a.lastActivity || 0))
-        });
-    } catch (error) {
-        console.error("❌ Sessions retrieval error:", error);
-        res.status(500).json({
-            status: "error",
-            message: "Failed to retrieve sessions"
-        });
-    }
-});
-
-// Health check endpoint
+// Health check
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        environment: 'production',
-        platform: 'vercel',
-        version: '2.0.0',
-        ollama: ollamaAvailable ? 'available' : 'unavailable'
+        groqAvailable: isGroqAvailable()
     });
 });
 
-// Root endpoint
+// Root
 app.all('/', (req, res) => {
     res.json({
-        message: "Agentic Honey-Pot for Scam Detection",
-        status: "operational",
-        ollama: ollamaAvailable ? 'enabled' : 'disabled (using fallback)'
+        message: "Honey-Pot Scam Detection API",
+        status: "operational"
     });
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`🔗 API: http://localhost:${PORT}/api`);
+    console.log(`🤖 Groq AI: ${isGroqAvailable() ? 'Available' : 'Not configured'}`);
 });
 
 export default app;

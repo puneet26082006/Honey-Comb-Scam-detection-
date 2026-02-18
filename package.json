@@ -1,17 +1,15 @@
 {
   "name": "honey-comb-scam-detection",
-  "version": "2.0.0",
-  "description": "Agentic Honey-Pot for Scam Detection with Ollama AI",
+  "version": "3.0.0",
+  "description": "AI-powered Honeypot for Scam Detection using Groq AI",
   "license": "ISC",
   "author": "Puneet Saxena",
   "type": "module",
   "main": "api/index.js",
   "scripts": {
-    "start": "node api/index.js",
-    "test": "node run-tests.js"
+    "start": "node api/index.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1"
