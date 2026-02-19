@@ -115,7 +115,8 @@ Respond naturally as a victim would.`;
                 max_tokens: 150,
                 top_p: 0.9,
                 stream: false
-            })
+            }),
+            signal: AbortSignal.timeout(25000) // 25 second timeout
         });
         
         if (!response.ok) {

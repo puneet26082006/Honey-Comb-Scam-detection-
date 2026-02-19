@@ -219,12 +219,27 @@ app.post('/api', validateApiKey, async (req, res) => {
         
         if (isGroqAvailable()) {
             console.log(`🤖 [${sessionId}] Using Groq AI`);
-            agentReply = await generateGroqResponse(incomingMessage, effectiveHistory);
+            try {
+                agentReply = await generateGroqResponse(incomingMessage, effectiveHistory);
+            } catch (error) {
+                console.error(`❌ [${sessionId}] Groq AI error: ${error.message}`);
+            }
         }
         
         if (!agentReply || agentReply.length < 5) {
-            // Fallback response
-            agentReply = "I'm concerned about this. Can you provide more details?";
+            // Intelligent fallback based on conversation context
+            const turnNumber = Math.floor(effectiveHistory.length / 2) + 1;
+            
+            if (turnNumber <= 2) {
+                // Early turns - show concern and ask questions
+                agentReply = "What? This is serious! How did this happen? Can you verify who you are?";
+            } else if (turnNumber <= 5) {
+                // Middle turns - show growing trust but still cautious
+                agentReply = "I understand this is urgent. Can you give me your employee ID or department number so I can verify this is legitimate?";
+            } else {
+                // Later turns - show readiness but ask for details
+                agentReply = "Okay, I'm ready to help. But first, can you confirm the exact steps I need to take? I want to make sure I do this correctly.";
+            }
         }
 
         // Count questions asked by honeypot
